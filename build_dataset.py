@@ -4,7 +4,7 @@ import json
 import numpy as np
 import pandas as pd
 import csv
-from multiprocessing import Pool
+import json
 from collections import Counter
 
 def getmat(path):
@@ -63,23 +63,24 @@ if __name__ == '__main__':
                         aff_c.update([affordance])
                     elif row[1][f'anno_{ann}_{affordance}'] == '0':
                         aff_c.subtract([affordance])
-            GT.loc[row[0], 'id'] = row[1]['id']
+            GT.loc[row[0], 'id'] = int(row[1]['id'])
             GT.loc[row[0],'object'] = row[1]['object_label']
             for element in aff_c:
                 GT.loc[row[0],element]= next(x if not x<0 else 0 for x in [aff_c[element]])
 
+    GT_high = GT[['id','object', "con_move", "uncon_move", "dir_affs", "indir_affs", "observe_affs", "social_affs", "no_affs",
+                   "no_clue"]]
+    GT_low = GT[['id','object',"no_clue", "roll", "push", "drag", "tether", "pick_up_carry", "pour", "fragile", "open", "grasp",
+                   "pull", "tip", "stack", "cut_scoop", "support", "transfer", "requires_other", "info", "deco",
+                   "together", "none", "warmth", "illumination", "walk"]]
 
-    for path in set(filepaths):
-        f = loadmat(f'{path}/seg.mat')
+    GT.to_csv('GT.csv')
+    GT_low.to_csv('GT_low.csv')
+    GT_high.to_csv('GT_high.csv')
 
+    transfer = {}
+    for i in GT.iterrows():
+        transfer[i[1]['object']] = np.array(i[1][affordances]>0, dtype=int)
 
-
-    #     for i, obj in enumerate(f['names'][0]):
-    #         if obj not in labels['labels']:
-    #             cnt_u_file.update(Counter({f"{obj}":np.count_nonzero(f['seglabel']==i+1)}))
-    #         else:
-    #             cnt_l_file.update(Counter({f"{obj}":np.count_nonzero(f['seglabel']==i+1)}))
-    #     count_u.update(cnt_u_file)
-    #     count_l.update(cnt_l_file)
-    # print(count_u.__len__())
-    print('done')
+    with open('transfer_table.pickle', 'wb') as file:
+        pickle.dump(transfer,file)
